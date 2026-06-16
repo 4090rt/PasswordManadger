@@ -31,7 +31,6 @@ namespace PasswordMenedger
             _createtable = new CreateTable();
             _createtable.CreateTableMethod();
 
-
         }
 
         public MainWindow(GeneratePassword generatePassword, GenerateRandomPassword generateRandomPassword) : this()
@@ -120,7 +119,7 @@ namespace PasswordMenedger
         {
             if (PasswordTextBox.Text.Length >= 8)
             {
-                MainFrame.Navigate(new SavePassword());
+                MainFrame.Navigate(new SavePassword(PasswordTextBox.Text));
             }
             else
             {

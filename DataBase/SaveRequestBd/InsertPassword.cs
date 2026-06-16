@@ -8,6 +8,7 @@ using System.Data.SQLite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace PasswordMenedger.Controllers_UI___BL.SaveRequestBd
 {
@@ -45,22 +46,26 @@ namespace PasswordMenedger.Controllers_UI___BL.SaveRequestBd
                     if (result != null)
                     {
                         await transaction.CommitAsync().ConfigureAwait(false);
+                        MessageBox.Show("Сохранено");
                         return true;
                     }
                     else
                     {
+                        MessageBox.Show("не сохранено");
                         return true;
                     }
                 }
             }
             catch (SQLiteException ex)
             {
+                MessageBox.Show("1");
                 _logger.LogError("Не удалось сохранить пароль" + ex.Message + ex.InnerException + ex.StackTrace);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return false;
             }
             catch (Exception ex)
             {
+                MessageBox.Show("2");
                 _logger.LogError("Не удалось сохранить пароль. Необработанное исключение" + ex.Message + ex.InnerException + ex.StackTrace);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return false;

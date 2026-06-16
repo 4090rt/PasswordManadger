@@ -23,19 +23,34 @@ namespace PasswordMenedger
     /// </summary>
     public partial class SavePassword : Page
     {
-        private readonly SavePasswordModel _passwordModel;
-        private readonly SavePasswordController _savePassword;
-        public SavePassword(SavePasswordModel savePasswordModel, SavePasswordController savePassword)
+        private readonly string _password;
+        private SavePasswordController _savePassword;
+
+        public SavePassword(string password)
         {
             InitializeComponent();
-            _passwordModel = savePasswordModel;
-            _savePassword = savePassword;
+            _password = password;
+            lblPassword.Content = _password;
+            _savePassword = new SavePasswordController();
         }
 
-        private async Task SavePassword_Click(object sender, RoutedEventArgs e)
+        private async void SavePassword_Click(object sender, RoutedEventArgs e)
         {
-            await _savePassword.SavePasswords(_passwordModel);
-           this.Content = null;
+            if (!string.IsNullOrEmpty(txtName.Text) && !string.IsNullOrEmpty(txtUrl.Text))
+            {
+                DateTime date = DateTime.Now;
+                var dateformat = date.ToString("ddd MM yyyy");
+
+                var data = new SavePasswordModel
+                {
+                    Password = _password,
+                    Name = txtName.Text,
+                    URL = txtUrl.Text,
+                    Date = dateformat
+                };
+                await _savePassword.SavePasswords(data);
+                this.Content = null;
+            }
         }
     }
 }
