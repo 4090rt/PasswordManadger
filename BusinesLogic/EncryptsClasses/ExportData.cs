@@ -1,4 +1,6 @@
-﻿using PasswordMenedger.DataModel;
+﻿using Microsoft.Extensions.Logging;
+using PasswordMenedger.BusinesLogic.LoggerFac;
+using PasswordMenedger.DataModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,14 +18,14 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
     }
     class ExportData
     {
-        private readonly IEncryptionService _encryption;
-
-        public ExportData(IEncryptionService encryption)
+        private readonly IEncryptionServicePasswordExport _encryption;
+        private readonly ILogger<ExportData> _logger = LogFac.LoggerCreate<ExportData>();
+        public ExportData(IEncryptionServicePasswordExport encryption)
         {
             _encryption = encryption;
         }
 
-        public void ExportDataPassword(List<SavePasswordModel> list, string filepath)
+        public bool ExportDataPassword(List<SavePasswordModel> list, string filepath)
         {
             try
             {
@@ -39,15 +41,17 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
                     WriteIndented = true
                 });
 
-                var encrtypted = _encryption.Encrypt(json);
+                var encrtypted = _encryption.EncryptExport(json);
 
                 var to64string = Convert.FromBase64String(encrtypted);
 
                 System.IO.File.WriteAllBytes(filepath, to64string);
+                return true;
             }
             catch (Exception ex)
             {
-                throw new Exception("Не удалось экпрортировать файл");
+                _logger.LogError("Не удалось экпрортировать файл" + ex.Message + ex.StackTrace + ex.InnerException);
+                return false;
             }
         }
 
@@ -58,7 +62,7 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
                 var encryptedbytes = System.IO.File.ReadAllBytes(filepath);
                 var tobase64 = Convert.ToBase64String(encryptedbytes);
 
-                var decrtypt = _encryption.Decrypt(tobase64);
+                var decrtypt = _encryption.DecryptExport(tobase64);
 
                 var jsonser = JsonSerializer.Deserialize<DataSettigns>(decrtypt);
 

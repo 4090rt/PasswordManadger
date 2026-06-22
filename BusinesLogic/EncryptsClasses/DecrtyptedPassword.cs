@@ -12,9 +12,9 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
     {
         ILogger<DecrtyptedPassword> _logger = LogFac.LoggerCreate<DecrtyptedPassword>();
 
-        private readonly IEncryptionService _encryption;
+        private readonly IEncryptionServicePassword _encryption;
 
-        public DecrtyptedPassword(IEncryptionService encryption)
+        public DecrtyptedPassword(IEncryptionServicePassword encryption)
         {
             _encryption = encryption;
         }

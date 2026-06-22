@@ -13,9 +13,9 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
     {
         ILogger<EncryptPassword> _logger = LogFac.LoggerCreate<EncryptPassword>();
 
-        private readonly IEncryptionService _encryption;
+        private readonly IEncryptionServicePassword _encryption;
 
-        public EncryptPassword(IEncryptionService encryption)
+        public EncryptPassword(IEncryptionServicePassword encryption)
         {
             _encryption = encryption;
         }

@@ -22,6 +22,7 @@ namespace PasswordMenedger
         private GeneratePassword _generatePassword;
         private GenerateRandomPassword _generateRandomPassword;
         private CreateTable _createtable;
+        public ExportClass _exportclass;
 
         public MainWindow()
         {
@@ -30,6 +31,8 @@ namespace PasswordMenedger
             _generatePassword = new GeneratePassword(_generateRandomPassword);
             _createtable = new CreateTable();
             _createtable.CreateTableMethod();
+            _exportclass = new ExportClass();
+            
 
         }
 
@@ -105,10 +108,10 @@ namespace PasswordMenedger
 
         }
 
-        private void ExportPasswords_Click(object sender, RoutedEventArgs e)
+        private async void ExportPasswords_Click(object sender, RoutedEventArgs e)
         {
-
-        }
+            await _exportclass.ExportFile();
+        } 
 
         private void LengthSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -125,6 +128,11 @@ namespace PasswordMenedger
             {
                 MessageBox.Show("Нечего сохранять");
             }
+        }
+
+        private void ImportPasswords_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
