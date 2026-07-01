@@ -45,7 +45,7 @@ namespace PasswordMenedger.DataBase
                     "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
                     "Name TEXT," +
                     "URL TEXT," +
-                    "Password TEXT NOT NULL," +
+                    "Password TEXT NOT NULL UNIQUE," +
                     "Date TEXT NOT NULL)";
 
                 await using (var sqlcomand = new SQLiteCommand(command, connection))

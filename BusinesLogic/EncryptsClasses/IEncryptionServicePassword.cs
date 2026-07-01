@@ -23,7 +23,7 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
             try
             {
                 byte[] bytessalt = Encoding.UTF8.GetBytes(_salt);
-                var BYTES = System.Security.Cryptography.ProtectedData.Protect
+                byte[] BYTES = System.Security.Cryptography.ProtectedData.Protect
                     (Encoding.UTF8.GetBytes(plainText),
                     bytessalt, 
                     System.Security.Cryptography.DataProtectionScope.LocalMachine);
@@ -44,7 +44,7 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
             {
                 byte[] bytessalt = Encoding.UTF8.GetBytes(_salt);
 
-                var bytess = System.Security.Cryptography.ProtectedData.Unprotect
+                byte[] bytess = System.Security.Cryptography.ProtectedData.Unprotect
                     (Convert.FromBase64String(cipherText),
                     bytessalt,
                     System.Security.Cryptography.DataProtectionScope.LocalMachine);

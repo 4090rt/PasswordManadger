@@ -46,7 +46,6 @@ namespace PasswordMenedger.Controllers_UI___BL.SaveRequestBd
                     if (result != null)
                     {
                         await transaction.CommitAsync().ConfigureAwait(false);
-                        MessageBox.Show("Сохранено");
                         return true;
                     }
                     else
@@ -58,14 +57,18 @@ namespace PasswordMenedger.Controllers_UI___BL.SaveRequestBd
             }
             catch (SQLiteException ex)
             {
-                MessageBox.Show("1");
+                if (ex.ResultCode == SQLiteErrorCode.Constraint_Unique)
+                {
+                    MessageBox.Show("Этот пароль  уже был сгенерирован и сохранен. Пожалуйста перегенерируйте пароль");
+                    await (transaction?.RollbackAsync() ?? Task.CompletedTask);
+                    return false;
+                }
                 _logger.LogError("Не удалось сохранить пароль" + ex.Message + ex.InnerException + ex.StackTrace);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("2");
                 _logger.LogError("Не удалось сохранить пароль. Необработанное исключение" + ex.Message + ex.InnerException + ex.StackTrace);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return false;

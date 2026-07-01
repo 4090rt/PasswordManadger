@@ -9,6 +9,7 @@ using System.Data.SQLite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace PasswordMenedger.DataBase.AllPasswordsSelect
 {
@@ -29,7 +30,7 @@ namespace PasswordMenedger.DataBase.AllPasswordsSelect
         public async Task<List<SavePasswordModel>> Request()
         {
             SQLiteConnection connection = null;
-            List<SavePasswordModel> list = null;
+            List<SavePasswordModel> list = new List<SavePasswordModel>();
             try
             {
                 connection = _pool.ConntectionOpen();
@@ -42,6 +43,7 @@ namespace PasswordMenedger.DataBase.AllPasswordsSelect
                     {
                         if (read != null)
                         {
+                            var Id = read.GetOrdinal("Id");
                             var name = read.GetOrdinal("Name");
                             var url = read.GetOrdinal("URL");
                             var password = read.GetOrdinal("Password");
@@ -51,6 +53,7 @@ namespace PasswordMenedger.DataBase.AllPasswordsSelect
                             {
                                 var data = new SavePasswordModel
                                 {
+                                    Id = read.IsDBNull(Id) ? 0 : read.GetInt32(Id),
                                     Name = read.IsDBNull(name) ? "" : read.GetString(name),
                                     URL = read.IsDBNull(url) ? "" : read.GetString(url),
                                     Password = read.IsDBNull(password) ? "" : read.GetString(password),
@@ -71,11 +74,13 @@ namespace PasswordMenedger.DataBase.AllPasswordsSelect
             catch (SQLiteException ex)
             {
                 _logger.LogError("Возинкло исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
+                MessageBox.Show("Возинкло исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
                 return new List<SavePasswordModel>();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Возинкло необработанное исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
+                MessageBox.Show("Возинкло необработанное исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
                 return new List<SavePasswordModel>();
             }
             finally

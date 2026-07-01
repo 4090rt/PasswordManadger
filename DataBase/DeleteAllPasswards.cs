@@ -10,6 +10,7 @@ using System.Data.SQLite;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace PasswordMenedger.DataBase
 {
@@ -36,7 +37,7 @@ namespace PasswordMenedger.DataBase
                 connection = _pool.ConntectionOpen();
                 transaction = connection.BeginTransaction();
 
-                string command = "DELETE * PasswordBase";
+                string command = "DELETE FROM PasswordBase";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                 { 
@@ -47,12 +48,14 @@ namespace PasswordMenedger.DataBase
             catch (SQLiteException ex)
             {
                 _logger.LogError("Возинкло исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
+                MessageBox.Show("Возинкло исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 throw new Exception();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Возинкло необработанное исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
+                MessageBox.Show("Возинкло необработанное исключение при попытке запроса списка паролей" + ex.Message + ex.InnerException + ex.StackTrace);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 throw new Exception();
             }

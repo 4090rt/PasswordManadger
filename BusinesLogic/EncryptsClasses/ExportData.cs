@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace PasswordMenedger.BusinesLogic.EncryptsClasses
 {
@@ -38,7 +39,7 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
 
                 var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
                 {
-                    WriteIndented = true
+                    PropertyNameCaseInsensitive = true
                 });
 
                 var encrtypted = _encryption.EncryptExport(json);
@@ -59,18 +60,29 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
         {
             try
             {
-                var encryptedbytes = System.IO.File.ReadAllBytes(filepath);
-                var tobase64 = Convert.ToBase64String(encryptedbytes);
+                if (!string.IsNullOrEmpty(filepath))
+                {
+                    var readedtoFilepath = System.IO.File.ReadAllBytes(filepath);
 
-                var decrtypt = _encryption.DecryptExport(tobase64);
+                    var tostring64 = Convert.ToBase64String(readedtoFilepath);
 
-                var jsonser = JsonSerializer.Deserialize<DataSettigns>(decrtypt);
+                    var encrypted = _encryption.DecryptExport(tostring64);
 
-                return jsonser.list ?? new List<SavePasswordModel>();
+                    var jsonser = JsonSerializer.Deserialize<DataSettigns>(encrypted);
+
+                    return jsonser.list ?? new List<SavePasswordModel>();
+                }
+                else
+                {
+                    _logger.LogError("Путь к файлу для импорта пуст!");
+                    return new List<SavePasswordModel>();
+                }
             }
             catch (Exception ex)
             {
-                throw new Exception("Не удалось импортировать файл");
+                MessageBox.Show("Не удалось импортировать файл" + ex.Message + ex.StackTrace + ex.InnerException);
+                _logger.LogError("Не удалось импортировать файл" + ex.Message + ex.StackTrace + ex.InnerException);
+                return new List<SavePasswordModel>();
             }
         }
     }

@@ -45,7 +45,7 @@ namespace PasswordMenedger.BusinesLogic.EncryptsClasses
                     bytessalt,
                     System.Security.Cryptography.DataProtectionScope.LocalMachine);
 
-                string convertt064 = Convert.ToBase64String(bytes);
+                string convertt064 = Encoding.UTF8.GetString(bytes);
                 return convertt064;
             }
             catch
