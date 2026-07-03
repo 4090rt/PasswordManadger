@@ -133,6 +133,7 @@ namespace PasswordMenedger
             try
             {
                 await _DeleteAllPasswordsController.DeletePasswordsController();
+                PasswordsPanel.Children.Clear();
             }
             catch (Exception ex)
             {
@@ -356,6 +357,7 @@ namespace PasswordMenedger
             {
                 if (PasswordTextBox.Text.Length >= 8)
                 {
+                    _isPasswordsLoaded = false;
                     MainFrame.Navigate(new SavePassword(PasswordTextBox.Text));
                 }
                 else

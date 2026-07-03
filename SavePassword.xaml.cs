@@ -25,6 +25,7 @@ namespace PasswordMenedger
     {
         private readonly string _password;
         private SavePasswordController _savePassword;
+        public MainWindow _main;
 
         public SavePassword(string password)
         {
@@ -32,6 +33,7 @@ namespace PasswordMenedger
             _password = password;
             lblPassword.Content = _password;
             _savePassword = new SavePasswordController();
+            _main = new MainWindow();
         }
 
         private async void SavePassword_Click(object sender, RoutedEventArgs e)
@@ -49,6 +51,7 @@ namespace PasswordMenedger
                     Date = dateformat
                 };
                 await _savePassword.SavePasswords(data);
+                await _main.LoadedPasswordList();
                 this.Content = null;
             }
         }
