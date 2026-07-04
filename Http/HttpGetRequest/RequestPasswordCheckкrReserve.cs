@@ -8,50 +8,50 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.Intrinsics.Arm;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using static System.Net.WebRequestMethods;
-
+using System.Windows.Shapes;
 
 namespace PasswordMenedger.Http.HttpGetRequest
 {
-    public class RequestPasswordCheck
+    public class RequestPasswordCheckкrReserve
     {
-        private readonly ILogger<RequestPasswordCheck> _logger = LogFac.LoggerCreate<RequestPasswordCheck>();
+        private readonly ILogger<RequestPasswordCheckкrReserve> _logger = LogFac.LoggerCreate<RequestPasswordCheckкrReserve>();
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
         private readonly IMemoryCache _memorycache;
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-        public RequestPasswordCheck(IHttpClientFactory httpClientFactory, IMemoryCache memorycache)
+        public RequestPasswordCheckкrReserve(IHttpClientFactory httpClientFactory, IMemoryCache memorycache)
         { 
             _httpClientFactory = httpClientFactory;
             _memorycache = memorycache;
         }
 
-        public async Task<List<CheckPassword>> CheckPasswordCheck(string password)
+        public async Task<List<CheckPassword>> CheckPasswordReserveCache(string password)
         {
-            string cached_key = $"Cache_key_{password}";
-            string stale_cache_key = $"stale_key_{cached_key}";
+            string cached_key = $"Cache_key_Reserve{password}";
+            string stale_cache_key = $"stale_key_Reserve{cached_key}";
             List<CheckPassword> oldcache = null;
 
             if (_memorycache.TryGetValue(cached_key, out List<CheckPassword> cached) && cached != null)
-            {
+            { 
                 oldcache = cached;
                 return cached;
             }
 
-            await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+            await _semaphore.WaitAsync().ConfigureAwait(false);
 
             try
             {
                 if (_memorycache.TryGetValue(cached_key, out List<CheckPassword> cached2) && cached2 != null)
                 {
                     oldcache = cached2;
-                    return cached2;
+                    return cached2; 
                 }
+
 
                 var fallback = Policy<List<CheckPassword>>
                 .Handle<Exception>()
@@ -86,29 +86,28 @@ namespace PasswordMenedger.Http.HttpGetRequest
                         return default;
                     }
                 },
-                onFallbackAsync: async (outcome, ctx ) =>
+                onFallbackAsync: async (outcome, ctx) =>
                 {
                     _logger.LogError($"🆘 Fallback сработал: {outcome.Exception?.Message}");
-                    await Task.CompletedTask;  
+                    await Task.CompletedTask;
                 });
 
                 var fallbackresult = await fallback.ExecuteAsync(async () =>
                 {
-                    var result = await CheckPassword(password).ConfigureAwait(false);
-
-                    if (result != null && result.Count > 0)
+                    var result = await CheckPasswordReserve(password).ConfigureAwait(false);
+                    if (result != null || result.Count > 0)
                     {
-                        var cacheoptions = new MemoryCacheEntryOptions()
-                        .SetSlidingExpiration(TimeSpan.FromMinutes(5))
-                        .SetAbsoluteExpiration(TimeSpan.FromMinutes(15));
-
-                        _memorycache.Set(cached_key, result, cacheoptions);
-
-                        var staleoptions = new MemoryCacheEntryOptions()
+                        var optionscache = new MemoryCacheEntryOptions()
                         .SetAbsoluteExpiration(TimeSpan.FromMinutes(15))
                         .SetSlidingExpiration(TimeSpan.FromMinutes(5));
 
-                        _memorycache.Set(stale_cache_key, result, staleoptions);
+                        _memorycache.Set(cached_key, result, optionscache);
+
+                        var optionsstale = new MemoryCacheEntryOptions()
+                        .SetAbsoluteExpiration(TimeSpan.FromMinutes(15))
+                        .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+
+                        _memorycache.Set(stale_cache_key, result, optionsstale);
 
                         return result;
                     }
@@ -127,24 +126,25 @@ namespace PasswordMenedger.Http.HttpGetRequest
             }
             finally
             {
-                _semaphoreSlim.Release();
+                 _semaphore.Release();
             }
         }
 
-        public async Task<List<CheckPassword>> CheckPassword(string password)
+        public async Task<List<CheckPassword>> CheckPasswordReserve(string password)
         {
             try
             {
                 List<CheckPassword> checkPasswordsList = new List<CheckPassword>();
-                var client = _httpClientFactory.CreateClient("Client1Http2.0");
 
-                using var ShA1 = SHA1.Create();
-                var bytes = Encoding.UTF8.GetBytes(password);
-                var hashbytes = ShA1.ComputeHash(bytes);
-                var hash = BitConverter.ToString(hashbytes).Replace("-", "").ToUpperInvariant();
+                var client = _httpClientFactory.CreateClient("ClientReserve");
 
-                var prefix = hash.Substring(0, 5);
-                var suffics = hash.Substring(5,0);
+                var Sha1 = SHA1.Create();
+                byte[] bytes = Encoding.UTF8.GetBytes(password);
+                var sha1S = Sha1.ComputeHash(bytes);
+                var allbytesHash = BitConverter.ToString(sha1S).Replace("-", "").ToUpperInvariant();
+
+                var prefix = allbytesHash.Substring(0, 5);
+                var suffix = allbytesHash.Substring(5, 0);
 
                 var options = new HttpRequestMessage(HttpMethod.Get, $"https://api.pwnedpasswords.com/range/{prefix}")
                 {
@@ -152,20 +152,22 @@ namespace PasswordMenedger.Http.HttpGetRequest
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
                 };
 
-                HttpResponseMessage responseMessage = await client.SendAsync(options).ConfigureAwait(false);
+                HttpResponseMessage response = await client.SendAsync(options).ConfigureAwait(false);
 
-                if (responseMessage.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
-                    var result = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
                     if (result != null)
                     {
-                        var lines = result.Split('\n');
                         int count;
                         string passwordHash;
-                        foreach (var line in lines)
+                        var items = result.Split('\n');
+                        foreach (var item in items)
                         {
-                            var parts = line.Split(':');
-                            if (parts.Length == 2 && parts[0].Trim() == suffics)
+                            var parts = item.Split(':');
+
+                            if (parts.Length == 2 && parts[0] == suffix)
                             {
                                 passwordHash = parts[0].ToString();
                                 count = int.Parse(parts[1]);
@@ -188,14 +190,14 @@ namespace PasswordMenedger.Http.HttpGetRequest
                 }
                 else
                 {
-                    _logger.LogError("Запрос вернул ошибку. Посткод:" + responseMessage.StatusCode);
+                    _logger.LogError("Запрос вернул ошибку. Посткод:" + response.StatusCode);
                     return new List<CheckPassword>();
                 }
             }
             catch (TaskCanceledException ex)
             {
                 _logger.LogError("Операция отменена" + ex.Message + " Место" + ex.StackTrace + " полный стек" + ex.InnerException);
-                 return new List<CheckPassword>();
+                return new List<CheckPassword>();
             }
             catch (JsonException ex)
             {
