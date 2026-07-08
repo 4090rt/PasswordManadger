@@ -46,7 +46,8 @@ namespace PasswordMenedger.DataBase
                     "Name TEXT," +
                     "URL TEXT," +
                     "Password TEXT NOT NULL UNIQUE," +
-                    "Date TEXT NOT NULL)";
+                    "Date TEXT NOT NULL," +
+                    "Icon BLOB)";
 
                 await using (var sqlcomand = new SQLiteCommand(command, connection))
                 {

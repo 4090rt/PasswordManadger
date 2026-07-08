@@ -48,7 +48,7 @@ namespace PasswordMenedger.DataBase.AllPasswordsSelect
                             var url = read.GetOrdinal("URL");
                             var password = read.GetOrdinal("Password");
                             var date = read.GetOrdinal("Date");
-
+                            var icon = read.GetOrdinal("Icon");
                             while (await read.ReadAsync().ConfigureAwait(false))
                             {
                                 var data = new SavePasswordModel
@@ -57,7 +57,8 @@ namespace PasswordMenedger.DataBase.AllPasswordsSelect
                                     Name = read.IsDBNull(name) ? "" : read.GetString(name),
                                     URL = read.IsDBNull(url) ? "" : read.GetString(url),
                                     Password = read.IsDBNull(password) ? "" : read.GetString(password),
-                                    Date = read.IsDBNull(date) ? "" : read.GetString(date)
+                                    Date = read.IsDBNull(date) ? "" : read.GetString(date),
+                                    Icon = read.IsDBNull(icon) ? null : (byte[])read[icon]
                                 };
                                 list?.Add(data);
                             }

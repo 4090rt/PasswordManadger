@@ -32,7 +32,7 @@ namespace PasswordMenedger.Controllers_UI___BL.SaveRequestBd
                 connection = _poolSQLite.ConntectionOpen(); 
                 transaction = connection.BeginTransaction();
 
-                string command = "INSERT INTO [PasswordBase] (Name, URL, Password, Date) VALUES (@N, @U, @P, @D)";
+                string command = "INSERT INTO [PasswordBase] (Name, URL, Password, Date, Icon) VALUES (@N, @U, @P, @D, @I)";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                 {
@@ -40,6 +40,7 @@ namespace PasswordMenedger.Controllers_UI___BL.SaveRequestBd
                     sqlcommand.Parameters.AddWithValue("@U", savePasswordModel.URL);
                     sqlcommand.Parameters.AddWithValue("@P", savePasswordModel.Password);
                     sqlcommand.Parameters.AddWithValue("@D", savePasswordModel.Date);
+                    sqlcommand.Parameters.AddWithValue("@I", savePasswordModel.Icon);
 
                     var result = await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
 

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace PasswordMenedger.Controllers_UI___BL
 {
@@ -30,7 +31,7 @@ namespace PasswordMenedger.Controllers_UI___BL
             _requestPasswordCheckReserve = new RequestPasswordCheckкrReserve(_httpClientFactory, _memorycache);
         }
 
-        public async Task<List<CheckPassword>> RequestpwnedAndReserve(string password)
+        public async Task<List<CacheTestPassword>> RequestpwnedAndReserve(string password)
         {
             try
             {
@@ -46,13 +47,13 @@ namespace PasswordMenedger.Controllers_UI___BL
                     else
                     {
                         _logger.LogWarning("Ответ от pwned пуст");
-                        return new List<CheckPassword>();
+                        return new List<CacheTestPassword>();
                     }
                 }
                 else
                 {
                     _logger.LogWarning("Пароль пуст");
-                    return new List<CheckPassword>();
+                    return new List<CacheTestPassword>();
                 }
             }
             catch (Exception ex)
@@ -72,19 +73,19 @@ namespace PasswordMenedger.Controllers_UI___BL
                         else
                         {
                             _logger.LogWarning("Ответ от pwned пуст резерв");
-                            return new List<CheckPassword>();
+                            return new List<CacheTestPassword>();
                         }
                     }
                     else
                     {
                         _logger.LogWarning("Пароль пуст");
-                        return new List<CheckPassword>();
+                        return new List<CacheTestPassword>();
                     }
                 }
                 catch (Exception ex2)
                 {
                     _logger.LogWarning("Оба запросы прерваличь исключением" + ex.Message + ex.StackTrace + ex.InnerException);
-                    return new List<CheckPassword>();
+                    return new List<CacheTestPassword>();
                 }
             }
         }
