@@ -1,11 +1,20 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PasswordMenedger.BusinesLogic;
+using PasswordMenedger.BusinesLogic.LoggerFac;
 using PasswordMenedger.Controllers_UI___BL;
 using PasswordMenedger.Controllers_UI___BL.CreateDB;
 using PasswordMenedger.DataBase;
 using PasswordMenedger.DataBase.PoolSQLiteConnection;
 using PasswordMenedger.DataModel;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.IO;
+using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,6 +26,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PasswordMenedger
 {
@@ -31,10 +41,21 @@ namespace PasswordMenedger
         private DeleteAllPasswordsController _DeleteAllPasswordsController;
         private LoadedAllPasswordsController _LoadedAllPasswordsController;
         private DeleteConcrectPasswordController _DeleteConcrectPasswordController;
+        private ItemsControl leftColumn;
+        private ItemsControl rightColumn;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IMemoryCache _memorycache;
+        private readonly HttppwnedController _httppwnedController;
+        private readonly ILogger<MainWindow> _logger = LogFac.LoggerCreate<MainWindow>();
+        private ObservableCollection<string> LeftPasswords;
+        private ObservableCollection<string> RightPasswords;
 
         public MainWindow()
         {
             InitializeComponent();
+            var serviceProvider = App.ServiceProvider;
+            _httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+            _memorycache = serviceProvider.GetRequiredService<IMemoryCache>();
             AutoCopyCheckBox.IsChecked = Properties.Settings.Default.CopyPassword;
             SaveHistoryCheckBox.IsChecked = Properties.Settings.Default.SaceHistory;
 
@@ -46,13 +67,10 @@ namespace PasswordMenedger
             _DeleteAllPasswordsController = new DeleteAllPasswordsController();
             _LoadedAllPasswordsController = new LoadedAllPasswordsController();
             _DeleteConcrectPasswordController = new DeleteConcrectPasswordController();
+            _httppwnedController = new HttppwnedController(_httpClientFactory, _memorycache);
+
         }
 
-        public MainWindow(GeneratePassword generatePassword, GenerateRandomPassword generateRandomPassword) : this()
-        {
-            _generatePassword = generatePassword;
-            _generateRandomPassword = generateRandomPassword;
-        }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -197,7 +215,28 @@ namespace PasswordMenedger
                 MessageBox.Show("Возникло исключение при получении списка паролей" + ex.Message);
             }
         }
+        private byte[] GenerateDefaultIcon(string serviceName)
+        {
+            var firstLetter = serviceName.FirstOrDefault().ToString().ToUpper();
 
+            var drawingVisual = new DrawingVisual();
+            using (var dc = drawingVisual.RenderOpen())
+            {
+                dc.DrawEllipse(Brushes.Gray, null, new Point(16, 16), 16, 16);
+                var text = new FormattedText(firstLetter, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    new Typeface("Arial"), 16, Brushes.White, 1);
+                dc.DrawText(text, new Point(16 - text.Width / 2, 16 - text.Height / 2));
+            }
+            var bitmap = new RenderTargetBitmap(32, 32, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(drawingVisual);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+
+            using var stream = new MemoryStream();
+            encoder.Save(stream);
+            return stream.ToArray();
+        }
 
         private Border CreatePasswordCard(SavePasswordModel list)
         {
@@ -223,6 +262,35 @@ namespace PasswordMenedger
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
             };
+
+
+            var icon = new System.Windows.Controls.Image
+            {
+
+            };
+
+            if (list.Icon != null && list.Icon.Length > 0)
+            {
+                var image = new BitmapImage();
+                using var stream = new MemoryStream(list.Icon);
+                image.BeginInit();
+                image.StreamSource = stream;
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.EndInit();
+
+                icon.Source = image;
+            }
+            else
+            {
+                byte[] bytes = GenerateDefaultIcon(list.Name);
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                using var stream = new MemoryStream(bytes);
+                bitmap.StreamSource = stream;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+                icon.Source = bitmap;
+            }
 
             // 1. Имя
             var nameText = new TextBlock
@@ -363,6 +431,7 @@ namespace PasswordMenedger
                 else
                 {
                     MessageBox.Show("Нечего сохранять");
+
                 }
             }
             else
@@ -387,6 +456,88 @@ namespace PasswordMenedger
         private void AutoCopyCheckBox_Checked(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private async void CheckPWNED_Click(object sender, RoutedEventArgs e)
+        {
+            LeftPasswords = new ObservableCollection<string>();
+            RightPasswords = new ObservableCollection<string>();
+            List<CheckPassword> check = new List<CheckPassword>();
+            bool cheked = false;
+            try
+            {
+                string Pass = PasswordTextBoxCheck.Text;
+
+                using var Sha_1 = SHA1.Create();
+                byte[] bytepass = Encoding.UTF8.GetBytes(Pass);
+                var hashe = Sha_1.ComputeHash(bytepass);
+                var fullhash = BitConverter.ToString(hashe).Replace("-", "").ToUpperInvariant();
+                PasswordHashTextBlock.Text = fullhash;
+
+                List<CacheTestPassword> list = await _httppwnedController.RequestpwnedAndReserve(Pass).ConfigureAwait(false);
+                if (list != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        foreach (var item1 in list)
+                        {
+                            check = item1.checkPasswordsList;
+                            cheked = item1.checkPasswordEnabled;
+                        }
+                        if (cheked == true)
+                        {
+                            PasswordHashTextBlockEnbled.Text = "Пароль найден в слитых базах.\n Перегенерируйте его";
+                        }
+                        else
+                        {
+                            PasswordHashTextBlockEnbled.Text = "Пароль не найден в слитых базах,\n можете его использовать";
+                        }
+                        foreach (var item in check)
+                        {
+                            LeftPasswords.Add(item.PasswordHash);
+                            RightPasswords.Add($"{item.Count}");
+                        }
+                        if (LeftPasswords.Count > 0 && LeftPasswords != null && RightPasswords.Count > 0 && RightPasswords != null)
+                        {
+                            leftColumn = FindName("LeftPasswordsColumn") as ItemsControl;
+                            rightColumn = FindName("RightPasswordsColumn") as ItemsControl;
+
+                            if (leftColumn != null && rightColumn != null)
+                            {
+                                leftColumn.ItemsSource = LeftPasswords;
+                                rightColumn.ItemsSource = RightPasswords;
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogError("Не удалось заполнить дочерние листый!");
+                            MessageBox.Show("Не удалось найти данный пароль в базах");
+                            return;
+                        }
+                    });
+                }
+                else
+                {
+                    _logger.LogWarning("Список паролей от PWNED пуст!");
+                    MessageBox.Show("Список паролей от PWNED пуст!");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Возикло исключение при получинеии паролей от PWNED" + ex.Message);
+                MessageBox.Show($"Error: {ex.Message}");
+                return;
+            }
+        }
+
+        private void CheckPWNEDV_Click(object sender, RoutedEventArgs e)
+        {
+            string password = Clipboard.GetData(DataFormats.Text) as string;
+            if (password != null)
+            {
+                PasswordTextBoxCheck.Text = password;
+            }
         }
     }
 }
