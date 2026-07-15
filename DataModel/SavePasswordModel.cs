@@ -14,5 +14,6 @@ namespace PasswordMenedger.DataModel
         public string URL { get; set; }
         public string Date { get; set; }
         public byte[] Icon { get; set; }
+        public byte[] IconUser { get; set; }
     }
 }
