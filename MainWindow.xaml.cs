@@ -5,6 +5,7 @@ using PasswordMenedger.BusinesLogic;
 using PasswordMenedger.BusinesLogic.LoggerFac;
 using PasswordMenedger.Controllers_UI___BL;
 using PasswordMenedger.Controllers_UI___BL.CreateDB;
+using PasswordMenedger.Controllers_UI___BL.UpdatesControllers;
 using PasswordMenedger.DataBase;
 using PasswordMenedger.DataBase.PoolSQLiteConnection;
 using PasswordMenedger.DataModel;
@@ -49,7 +50,9 @@ namespace PasswordMenedger
         private readonly ILogger<MainWindow> _logger = LogFac.LoggerCreate<MainWindow>();
         private ObservableCollection<string> LeftPasswords;
         private ObservableCollection<string> RightPasswords;
-
+        private readonly UpdateUserIconController  _updateUserIconController;
+        private readonly UpdateServiceName _updateServiceName;
+        private readonly UpdateServiceUrl _updateServiceUrl;
         public MainWindow()
         {
             InitializeComponent();
@@ -68,7 +71,9 @@ namespace PasswordMenedger
             _LoadedAllPasswordsController = new LoadedAllPasswordsController();
             _DeleteConcrectPasswordController = new DeleteConcrectPasswordController();
             _httppwnedController = new HttppwnedController(_httpClientFactory, _memorycache);
-
+            _updateUserIconController = new UpdateUserIconController();
+            _updateServiceName = new UpdateServiceName();   
+            _updateServiceUrl = new UpdateServiceUrl();
         }
 
 
@@ -253,23 +258,54 @@ namespace PasswordMenedger
 
             // Сетка для размещения элементов в одной строке
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Для кнопки "+"
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Для иконки
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Для левой части
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Для правой части
 
-            // Левая часть (Имя, Ссылка, Пароль, Дата)
-            var leftPanel = new StackPanel
+            // Кнопка "+"
+            var addButton = new Button
             {
-                Orientation = Orientation.Horizontal,
-                VerticalAlignment = VerticalAlignment.Center
+                Content = "+",
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#28A745")),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Width = 30,
+                Height = 30,
+                Margin = new Thickness(0, 0, 8, 0),
+                Cursor = Cursors.Hand,
+                Tag = list,
+                FontSize = 18,
+                FontWeight = FontWeights.Bold
+            };
+            addButton.Click += async (s, e) =>
+            {
+                var button = s as Button;
+                var entry = button?.Tag as SavePasswordModel;
+                await _updateUserIconController.UpdateController(list.Id);
+                MessageBox.Show($"Добавить для '{entry?.Name}'");
             };
 
-
+            // Иконка
             var icon = new System.Windows.Controls.Image
             {
-
+                Width = 32,
+                Height = 32,
+                Margin = new Thickness(0, 0, 10, 0),
+                Stretch = Stretch.Uniform
             };
 
-            if (list.Icon != null && list.Icon.Length > 0)
+            if (list.IconUser != null && list.IconUser.Length > 0)
+            {
+                var image = new BitmapImage();
+                using var stream = new MemoryStream(list.IconUser);
+                image.BeginInit();
+                image.StreamSource = stream;
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.EndInit();
+                icon.Source = image;
+            }
+            else if (list.IconUser == null && list.Icon != null && list.Icon.Length > 0)
             {
                 var image = new BitmapImage();
                 using var stream = new MemoryStream(list.Icon);
@@ -277,7 +313,6 @@ namespace PasswordMenedger
                 image.StreamSource = stream;
                 image.CacheOption = BitmapCacheOption.OnLoad;
                 image.EndInit();
-
                 icon.Source = image;
             }
             else
@@ -292,34 +327,133 @@ namespace PasswordMenedger
                 icon.Source = bitmap;
             }
 
+            // Левая часть (Имя, Ссылка, Пароль, Дата)
+            var leftPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            // Контейнер для имени с кнопкой редактирования
+            var nameContainer = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 15, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
             // 1. Имя
             var nameText = new TextBlock
             {
                 Text = list.Name,
                 FontWeight = FontWeights.Bold,
                 FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            nameContainer.Children.Add(nameText);
+
+            // Кнопка редактирования имени (маленькая)
+            var editNameButton = new Button
+            {
+                Content = "✏️",
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Width = 20,
+                Height = 20,
+                Margin = new Thickness(5, 0, 0, 0),
+                Cursor = Cursors.Hand,
+                FontSize = 12,
+                Tag = list,
+                ToolTip = "Редактировать имя"
+            };
+            editNameButton.Click += async (s, e) =>
+            {
+                var button = s as Button;
+                var entry = button?.Tag as SavePasswordModel;
+                if (entry != null)
+                {
+                    var inputDialog = new InputDialog("Редактирование имени", "Введите новое имя:", entry.Name);
+                    if (inputDialog.ShowDialog() == true)
+                    {
+                        string newname = entry.Name = inputDialog.InputText;
+                        nameText.Text = newname;
+                        await _updateServiceName.UpdateName(entry.Id, newname);
+                    }
+                }
+            };
+            nameContainer.Children.Add(editNameButton);
+
+            leftPanel.Children.Add(nameContainer);
+
+            // Контейнер для ссылки с кнопкой редактирования
+            var urlContainer = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
                 Margin = new Thickness(0, 0, 15, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            leftPanel.Children.Add(nameText);
 
-            // 2. Ссылка (LinkLabel)
+            // 2. Ссылка (обрезанная)
+            var displayUrl = GetShortenedUrl(list.URL);
             var hyperlink = new Hyperlink
             {
                 NavigateUri = new Uri(list.URL),
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"))
             };
-            hyperlink.Inlines.Add(list.URL);
+            hyperlink.Inlines.Add(displayUrl);
             hyperlink.RequestNavigate += (s, e) =>
                 System.Diagnostics.Process.Start(e.Uri.ToString());
 
             var linkTextBlock = new TextBlock
             {
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 15, 0)
+                VerticalAlignment = VerticalAlignment.Center
             };
             linkTextBlock.Inlines.Add(hyperlink);
-            leftPanel.Children.Add(linkTextBlock);
+            urlContainer.Children.Add(linkTextBlock);
+
+            // Кнопка редактирования URL (маленькая)
+            var editUrlButton = new Button
+            {
+                Content = "✏️",
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Width = 20,
+                Height = 20,
+                Margin = new Thickness(5, 0, 0, 0),
+                Cursor = Cursors.Hand,
+                FontSize = 12,
+                Tag = list,
+                ToolTip = "Редактировать URL"
+            };
+            editUrlButton.Click += async (s, e) =>
+            {
+                var button = s as Button;
+                var entry = button?.Tag as SavePasswordModel;
+                if (entry != null)
+                {
+                    var inputDialog = new InputDialog("Редактирование URL", "Введите новый URL:", entry.URL);
+                    if (inputDialog.ShowDialog() == true)
+                    {
+                        string url = entry.URL = inputDialog.InputText;
+                        // Обновляем отображение ссылки
+                        var newDisplayUrl = GetShortenedUrl(url);
+                        linkTextBlock.Inlines.Clear();
+                        var newHyperlink = new Hyperlink
+                        {
+                            NavigateUri = new Uri(url),
+                            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"))
+                        };
+                        newHyperlink.Inlines.Add(newDisplayUrl);
+                        newHyperlink.RequestNavigate += (s2, e2) =>
+                            System.Diagnostics.Process.Start(e2.Uri.ToString());
+                        linkTextBlock.Inlines.Add(newHyperlink);
+                        await _updateServiceUrl.UpdateUrl(entry.Id, url);
+                    }
+                }
+            };
+            urlContainer.Children.Add(editUrlButton);
+
+            leftPanel.Children.Add(urlContainer);
 
             // 3. Пароль
             var passwordText = new TextBlock
@@ -404,19 +538,120 @@ namespace PasswordMenedger
                     }
                 }
             };
-
-
             rightPanel.Children.Add(deleteButton);
 
-            // Добавляем панели в сетку
+            // Добавляем элементы в сетку
+            grid.Children.Add(addButton);
+            Grid.SetColumn(addButton, 0);
+
+            grid.Children.Add(icon);
+            Grid.SetColumn(icon, 1);
+
             grid.Children.Add(leftPanel);
-            Grid.SetColumn(leftPanel, 0);
+            Grid.SetColumn(leftPanel, 2);
 
             grid.Children.Add(rightPanel);
-            Grid.SetColumn(rightPanel, 1);
+            Grid.SetColumn(rightPanel, 3);
 
             card.Child = grid;
             return card;
+        }
+
+        // Вспомогательный класс для диалога ввода
+        public class InputDialog : Window
+        {
+            private TextBox textBox;
+            public string InputText { get; private set; }
+
+            public InputDialog(string title, string prompt, string defaultValue = "")
+            {
+                Title = title;
+                Width = 400;
+                Height = 150;
+                WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                ResizeMode = ResizeMode.NoResize;
+
+                var stackPanel = new StackPanel { Margin = new Thickness(20) };
+
+                var label = new TextBlock
+                {
+                    Text = prompt,
+                    Margin = new Thickness(0, 0, 0, 10),
+                    FontSize = 14
+                };
+                stackPanel.Children.Add(label);
+
+                textBox = new TextBox
+                {
+                    Text = defaultValue,
+                    FontSize = 14,
+                    Margin = new Thickness(0, 0, 0, 15)
+                };
+                stackPanel.Children.Add(textBox);
+
+                var buttonPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+
+                var okButton = new Button
+                {
+                    Content = "OK",
+                    Width = 80,
+                    Height = 30,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    IsDefault = true
+                };
+                okButton.Click += (s, e) =>
+                {
+                    InputText = textBox.Text;
+                    DialogResult = true;
+                    Close();
+                };
+
+                var cancelButton = new Button
+                {
+                    Content = "Отмена",
+                    Width = 80,
+                    Height = 30,
+                    IsCancel = true
+                };
+                cancelButton.Click += (s, e) =>
+                {
+                    DialogResult = false;
+                    Close();
+                };
+
+                buttonPanel.Children.Add(okButton);
+                buttonPanel.Children.Add(cancelButton);
+                stackPanel.Children.Add(buttonPanel);
+
+                Content = stackPanel;
+            }
+        }
+        // Вспомогательный метод для обрезания URL
+        private string GetShortenedUrl(string url, int maxLength = 30)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            // Убираем протокол для отображения
+            string displayUrl = url;
+            if (displayUrl.StartsWith("https://"))
+                displayUrl = displayUrl.Substring(8);
+            else if (displayUrl.StartsWith("http://"))
+                displayUrl = displayUrl.Substring(7);
+            else if (displayUrl.StartsWith("www."))
+                displayUrl = displayUrl.Substring(4);
+
+            // Обрезаем до максимальной длины
+            if (displayUrl.Length > maxLength)
+            {
+                displayUrl = displayUrl.Substring(0, maxLength) + "...";
+            }
+
+            return displayUrl;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
