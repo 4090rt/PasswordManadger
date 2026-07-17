@@ -8,6 +8,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace PasswordMenedger.Controllers_UI___BL
 {
@@ -25,28 +27,36 @@ namespace PasswordMenedger.Controllers_UI___BL
         {
             try
             {
+                MessageBox.Show("1");
                 var openFileDIalod = new OpenFileDialog();
+                MessageBox.Show("2.1");
                 openFileDIalod.Title = "Выберите изображение";
-                openFileDIalod.Filter = "png(*.png) | *.png  jpg(*.jpg) | *.jpg | Все файлы(*.*) | *.* ";
+                MessageBox.Show("2.2");
+                openFileDIalod.Filter = "PNG файлы (*.png)|*.png|JPG файлы (*.jpg)|*.jpg|Все файлы (*.*)|*.*";
+                MessageBox.Show("2.3");
 
                 if (openFileDIalod.ShowDialog() == true)
                 {
+                    MessageBox.Show("3");
                     var filepath = openFileDIalod.FileName;
 
                     var extension = Path.GetExtension(filepath);
-
-                    if (extension != ".png" || extension != ".jpg")
-                    { 
+                    MessageBox.Show(extension);
+                    if (extension != ".png" && extension != ".jpg")
+                    {
+                        MessageBox.Show("3.2");
                         return;
                     }
 
                     if (!string.IsNullOrEmpty(filepath))
                     {
+                        MessageBox.Show("4");
                         byte[] bytes = await System.IO.File.ReadAllBytesAsync(filepath).ConfigureAwait(false);
 
                         if (bytes != null)
                         {
                             await _updateUsersI.UpdateClass(id, bytes);
+                            MessageBox.Show("5");
                         }
                         else
                         {
@@ -55,6 +65,7 @@ namespace PasswordMenedger.Controllers_UI___BL
                     }
                     else
                     {
+                        MessageBox.Show("3.3");
                         _logger.LogWarning("Выбранный путь пуст");
                     }
                 }

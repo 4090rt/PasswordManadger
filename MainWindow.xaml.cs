@@ -11,6 +11,7 @@ using PasswordMenedger.DataBase.PoolSQLiteConnection;
 using PasswordMenedger.DataModel;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -280,10 +281,14 @@ namespace PasswordMenedger
             };
             addButton.Click += async (s, e) =>
             {
-                var button = s as Button;
-                var entry = button?.Tag as SavePasswordModel;
-                await _updateUserIconController.UpdateController(list.Id);
-                MessageBox.Show($"Добавить для '{entry?.Name}'");
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    MessageBox.Show($"Меняю'");
+                    var button = s as Button;
+                    var entry = button?.Tag as SavePasswordModel;
+                    await _updateUserIconController.UpdateController(list.Id);
+                    MessageBox.Show($"Добавить для '{entry?.Name}'");
+                });
             };
 
             // Иконка
@@ -401,8 +406,16 @@ namespace PasswordMenedger
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"))
             };
             hyperlink.Inlines.Add(displayUrl);
-            hyperlink.RequestNavigate += (s, e) =>
-                System.Diagnostics.Process.Start(e.Uri.ToString());
+
+            hyperlink.Click += (s, e) =>
+            {
+                string fullurl = "https://" + displayUrl;
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = fullurl,  
+                    UseShellExecute = true
+                });
+            };
 
             var linkTextBlock = new TextBlock
             {
@@ -425,6 +438,7 @@ namespace PasswordMenedger
                 Tag = list,
                 ToolTip = "Редактировать URL"
             };
+
             editUrlButton.Click += async (s, e) =>
             {
                 var button = s as Button;
@@ -444,8 +458,6 @@ namespace PasswordMenedger
                             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007BFF"))
                         };
                         newHyperlink.Inlines.Add(newDisplayUrl);
-                        newHyperlink.RequestNavigate += (s2, e2) =>
-                            System.Diagnostics.Process.Start(e2.Uri.ToString());
                         linkTextBlock.Inlines.Add(newHyperlink);
                         await _updateServiceUrl.UpdateUrl(entry.Id, url);
                     }
@@ -567,7 +579,7 @@ namespace PasswordMenedger
             {
                 Title = title;
                 Width = 400;
-                Height = 150;
+                Height = 180;
                 WindowStartupLocation = WindowStartupLocation.CenterScreen;
                 ResizeMode = ResizeMode.NoResize;
 
